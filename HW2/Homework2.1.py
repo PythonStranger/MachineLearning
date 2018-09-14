@@ -25,4 +25,5 @@ print('\nR-Squared: ', metrics.explained_variance_score(y, y_pred1))
 print('Polynomial MSE:', metrics.mean_squared_error(y, y_pred1))
 print('Polynomial MAE:', metrics.mean_absolute_error(y, y_pred1), )
 print('\n')
-print('hello')
+
+print("success connect to the github!")
