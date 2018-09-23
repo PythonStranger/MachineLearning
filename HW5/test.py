@@ -1,5 +1,12 @@
 import numpy as np
 import pandas as pd
+
+pd.core.common.is_list_like = pd.api.types.is_list_like
+import pandas_datareader.data as web
+import datetime
+
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
@@ -7,27 +14,33 @@ from sklearn.metrics import confusion_matrix, classification_report
 import talib as ta
 
 
-df = pd.read_csv( '/Users/tianxiang/Downloads/QDA_Strategy_Data.csv')
-df['ADX'] = ta.ADX(np.array(df['High']), np.array(df['Low']),
-                   np.array(df['Close']), timeperiod=14)
-df['BOP'] = ta.BOP(np.array(df['Open']),np.array(df['High']),np.array(df['Low']),
-                   np.array(df['Close']))
-df['CCI'] = ta.CCI(np.array(df['High']), np.array(df['Low']),
-                   np.array(df['Close']), timeperiod=14)
+# Get data
+start = datetime.datetime(2015, 1, 1)
+end = datetime.datetime(2018, 8, 1)
+df = web.DataReader('BABA', 'iex', start, end)
+df = df.dropna()
+df = df.iloc[:, :4]
+
+df['ADX'] = ta.ADX(np.array(df['high']), np.array(df['low']),
+                   np.array(df['close']), timeperiod=14)
+df['BOP'] = ta.BOP(np.array(df['open']),np.array(df['high']),np.array(df['low']),
+                   np.array(df['close']))
+df['CCI'] = ta.CCI(np.array(df['high']), np.array(df['low']),
+                   np.array(df['close']), timeperiod=14)
 
 
 df = df.assign( Signal = pd.Series( np.zeros( len( df ) ) ).values )
-df[ 'Vol' ] = df[ 'Close' ].rolling(5).std()
-df['Move'] =  df[ 'Close' ] - df[ 'Close' ].shift( 1 )
-df.loc[df['Close'] > df['Close'].shift(1), 'Signal'] = 1  # Long signal
-df.loc[df['Close'] < df['Close'].shift(1), 'Signal'] = -1  # Short signal
+df[ 'Vol' ] = df[ 'close' ].rolling(5).std()
+df['Move'] =  df[ 'close' ] - df[ 'close' ].shift( 1 )
+df.loc[df['close'] > df['close'].shift(1), 'Signal'] = 1  # Long signal
+df.loc[df['close'] < df['close'].shift(1), 'Signal'] = -1  # Short signal
 df[ 'Return Direction' ] = np.where( df[ 'Move' ] > df['Vol'], 'UP', np.where(df[ 'Move' ] < -df['Vol'],'DOWN', 'FLAT' ))
 
 
 #df.loc[ df[ 'ADX' ] < df[ 'ADX_MA' ], 'Signal' ] = 1 # Long signal
 #df.loc[ df[ 'ADX' ] > df[ 'ADX_MA' ], 'Signal' ] = -1 # Short signal
 # Backtest the signal
-df[ 'Return' ] = np.log( df[ 'Close' ] / df[ 'Close' ].shift( 1 )) # Calc log return
+df[ 'Return' ] = np.log( df[ 'close' ] / df[ 'close' ].shift( 1 )) # Calc log return
 #df['Move'] =  df[ 'Close' ] - df[ 'Close' ].shift( 1 )
 #df[ 'S_Return' ] = df[ 'Signal' ]* df[ 'Return' ] # Signal times the return
 #df['S_Move'] =  df[ 'Signal' ]* df[ 'Move' ]
@@ -59,7 +72,7 @@ print( classification_report( y_test, predictions ) )
 
 df[ 'Predictions' ] = model.predict( X.fillna( 0 ) )
 df[ 'QDA Signal' ] = np.zeros( len( df ) )
-df[ 'QDA Signal' ] = np.where( df[ 'Predictions' ] == 'DOWN', 0, np.where(df['Predictions']=='UP',1,0) )
+df[ 'QDA Signal' ] = np.where( df[ 'Predictions' ] == 'DOWN', 0, df[ 'Signal' ] )
 
 df[ 'SQ_Return' ] = df[ 'QDA Signal' ] * df[ 'Return' ]
 df[ 'Strategy_Return' ] = df[ 'SQ_Return' ].expanding().sum()
