@@ -20,12 +20,10 @@ df = df.assign(Signal=pd.Series(np.zeros(len(df))).values)
 df.loc[df['RSI'] < df['RSI_MA'], 'Signal'] = 1
 df.loc[df['RSI'] > df['RSI_MA'], 'Signal'] = -1
 
-
 df['Return'] = np.log(df['Close'] / df['Close'].shift(1))  # Calc log return
 df['S_Return'] = df['Signal'].shift(1) * df['Return']  # Signal times the return
 df['S_Vol'] = df['S_Return'].rolling(5).std()
 df['Market_Return'] = df['Return'].expanding().sum()
-
 
 df['Return Direction'] = np.where(df['S_Return'] > df['S_Vol'], 'UP',
                                   np.where(df['S_Return'] < -df['S_Vol'], 'DOWN', 'FLAT'))
